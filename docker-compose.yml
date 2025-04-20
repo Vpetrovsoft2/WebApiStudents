@@ -9,34 +9,13 @@ services:
       - "8080:80"
     environment:
       - ConnectionStrings__DefaultConnection=Server=db;Database=studentsdb;User=root;Password=root;Port=3306
+      - ASPNETCORE_ENVIRONMENT=Development
+    command: >
+      sh -c "dotnet ef database update && dotnet WebApiStudents.dll"
     depends_on:
       db:
         condition: service_healthy
-      migrations:
-        condition: service_completed_successfully
     restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  migrations:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    command: dotnet ef database update
-    environment:
-      - ConnectionStrings__DefaultConnection=Server=db;Database=studentsdb;User=root;Password=root;Port=3306
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: "no"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "1"
 
   db:
     image: mysql:8.0
@@ -51,11 +30,6 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
 
 volumes:
   mysql_data: 
