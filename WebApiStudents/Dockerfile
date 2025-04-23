@@ -22,4 +22,4 @@ COPY --from=build /app/publish .
 # Expose port 80 and configure entrypoint
 EXPOSE 80
 ENV ASPNETCORE_URLS=http://+:80
-ENTRYPOINT ["dotnet", "WebApiStudents.dll"] 
+ENTRYPOINT ["dotnet", "WebApiStudents.dll"]
