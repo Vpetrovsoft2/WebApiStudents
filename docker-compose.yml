@@ -3,33 +3,25 @@ version: '3.8'
 services:
   webapi:
     build:
-      context: .
+      context: ./WebApiStudents
       dockerfile: Dockerfile
     ports:
-      - "8080:80"
-    environment:
-      - ConnectionStrings__DefaultConnection=Server=db;Database=studentsdb;User=root;Password=root;Port=3306
-      - ASPNETCORE_ENVIRONMENT=Development
-    command: >
-      sh -c "dotnet ef database update && dotnet WebApiStudents.dll"
+      - "5000:80"
     depends_on:
-      db:
-        condition: service_healthy
-    restart: unless-stopped
+      - db
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=db;Database=StudentsDb;User=sa;Password=YourStrong!Passw0rd;
 
   db:
-    image: mysql:8.0
+    image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
-      - MYSQL_ROOT_PASSWORD=root
-      - MYSQL_DATABASE=studentsdb
+      SA_PASSWORD: "YourStrong!Passw0rd"
+      ACCEPT_EULA: "Y"
+    ports:
+      - "1433:1433"
     volumes:
-      - mysql_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
+      - mssql-data:/var/opt/mssql
 
 volumes:
-  mysql_data: 
+  mssql-data: {} 
