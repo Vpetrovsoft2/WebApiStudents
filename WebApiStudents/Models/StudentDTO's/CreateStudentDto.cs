@@ -2,9 +2,8 @@
 
 public class CreateStudentDto
 {
-    public string? Name { get; set; }
-    public string? LastName { get; set; }
+    public string Name { get; set; } = null!;
+    public string LastName { get; set; } = null!;
     public int Age { get; set; }
     public int FacultetId { get; set; }
-    //public string? FacultetName { get; set; }
 }
