@@ -1,6 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using WebApiStudents.Models;
 using Microsoft.EntityFrameworkCore;
+using AutoMapper;
+using Swashbuckle.AspNetCore.Annotations;
+using WebApiStudents.Models.StudentDTO_s;
 
 namespace WebApiStudents.Controllers;
 
@@ -9,26 +12,42 @@ namespace WebApiStudents.Controllers;
 public class StudentsController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly IMapper _mapper;
 
-    public StudentsController(AppDbContext context)
+    public StudentsController(AppDbContext context, IMapper mapper)
     {
         _context = context;
+        _mapper = mapper;
     }
 
     [HttpGet(nameof(GetStudents))]
-    [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public ActionResult<IEnumerable<Student>> GetStudents()
+    [SwaggerOperation(
+        Summary = "Получение данных по всем студентам",
+        Description = "Получает данные всех студентов")]
+    [SwaggerResponse(StatusCodes.Status200OK, "Студент испешно найден", typeof(StudentWithFacultetNameDto))]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "Ошибка валидации запроса")]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "Студенты не найдены")]
+    public ActionResult<IEnumerable<StudentWithFacultetNameDto>> GetStudents()
     {
-        var result = _context.Students!.ToList();
-        if (result is not null && result.Count > 0)
+        var students = _context.Students!
+            .Include(x => x.Facultet)
+            .ToList();
+
+        if (students is not null && students.Count > 0)
+        {
+            var result = _mapper.Map<List<StudentWithFacultetNameDto>>(students);
             return Ok(result);
-        return BadRequest("Students not found");
+        }
+        return NotFound();
     }
 
     [HttpGet($"{nameof(GetStudent)}/{{id}}")]
-    [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [SwaggerOperation(
+        Summary = "Получение данных студента",
+        Description = "Получает данные студента")]
+    [SwaggerResponse(StatusCodes.Status200OK, "Студент испешно найден", typeof(UpdateStudentDto))]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "Ошибка валидации запроса")]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "Студент не найден")]
     public ActionResult<Student> GetStudent(int id)
     {
         var student = _context.Students!
@@ -36,70 +55,88 @@ public class StudentsController : ControllerBase
             .FirstOrDefault(s => s.Id == id);
 
         if (student is null)
-            return BadRequest($"Student: {id} not found");
-        return Ok(student);
+            return NotFound();
+
+        var studentDto = _mapper.Map<StudentDto>(student);
+
+        return Ok(studentDto);
     }
 
     [HttpPost($"{nameof(CreateStudent)}")]
-    [ProducesResponseType(typeof(int), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public ActionResult<Student> CreateStudent(CreateStudentDto createStudentDto)
+    [SwaggerOperation(
+        Summary = "Создание нового студента",
+        Description = "Создает студента и связывает его с факультетом по ID факультета.")]
+    [SwaggerResponse(StatusCodes.Status201Created, "Студент успешно создан", typeof(StudentDto))]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "Ошибка валидации запроса")]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "Факультет не найден")]
+    public ActionResult<StudentDto> CreateStudent([FromBody] CreateStudentDto createStudentDto)
     {
         var facultet = _context.Facultes!.Find(createStudentDto.FacultetId);
-        if (facultet == null)
-            return NotFound("Facultet not found");
 
-        // Создаем нового студента
+        if (facultet is null)
+            return NotFound($"Facultet with ID {createStudentDto.FacultetId} not found.");
+
         var student = new Student
         {
             Name = createStudentDto.Name,
             LastName = createStudentDto.LastName,
             Age = createStudentDto.Age,
-            FacultetId = createStudentDto.FacultetId,
-            Facultet = facultet
+            FacultetId = facultet.Id
         };
 
-        // Добавляем студента в базу данных
         _context.Students!.Add(student);
         _context.SaveChanges();
 
+        // Загружаем студента вместе с факультетом после сохранения
         var studentWithFacultet = _context.Students
             .Include(s => s.Facultet)
             .FirstOrDefault(s => s.Id == student.Id);
 
-        // Возвращаем созданного студента
-        return CreatedAtAction(nameof(GetStudent), new { id = student.Id }, studentWithFacultet);
+        var result = _mapper.Map<StudentDto>(studentWithFacultet);
+
+        return CreatedAtAction(nameof(GetStudent), new { id = result.Id }, result);
     }
 
     [HttpPut($"{nameof(UpdateStudent)}/{{id}}")]
-    [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public IActionResult UpdateStudent(int id, Student student)
+    [SwaggerOperation(
+        Summary = "Изменение существующего студента",
+        Description = "Изменяет студента")]
+    [SwaggerResponse(StatusCodes.Status200OK, "Студент испешно изменён", typeof(UpdateStudentDto))]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "Ошибка валидации запроса")]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "Факультет не найден")]
+    public IActionResult UpdateStudent(int id, [FromBody] UpdateStudentDto newStudent)
     {
-        if (id != student.Id)
-            return BadRequest("Something went wrong");
+        var student = _context.Students!.Find(id);
+        if (student is null)
+            return BadRequest();
 
-        _context.Entry(student).State = EntityState.Modified;
+        student.Name = newStudent.Name ?? student.Name;
+        student.LastName = newStudent.LastName ?? student.LastName;
+        student.Age = newStudent.Age ?? student.Age;
+        student.FacultetId = newStudent.FacultetId ?? student.FacultetId;
         _context.SaveChanges();
-        
-        var result = _context.Students!
-            .Include(s => s.Facultet)
-            .FirstOrDefault(s => s.Id == id);
 
-        if (result is not null)
-            return Ok(result);
-        return BadRequest("Failed to update student");
+        var updatedStudent = _context.Students
+          .Include(s => s.Facultet)
+          .FirstOrDefault(s => s.Id == id);
+
+        var result = _mapper.Map<StudentDto>(updatedStudent);
+
+        return Ok(result);
     }
 
     [HttpDelete($"{nameof(DeleteStudent)}/{{id}}")]
-    [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [SwaggerOperation(
+        Summary = "Удаление студента",
+        Description = "Удаляет студента")]
+    [SwaggerResponse(StatusCodes.Status200OK, "Студент испешно удалён", typeof(UpdateStudentDto))]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "Ошибка валидации запроса")]
+    [SwaggerResponse(StatusCodes.Status404NotFound, $"Студент {{id}} не найден")]
     public IActionResult DeleteStudent(int id) 
     {
         var student = _context.Students!.Find(id);
         if (student is null)
-            return BadRequest($"Student with id: {id} not found");
+            return NotFound($"Student with id: {id} not found");
 
         _context.Students!.Remove(student);
         _context.SaveChanges();

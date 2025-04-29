@@ -2,5 +2,5 @@
 
 public class CreateFacultetDto
 {
-    public string? Name { get; set; }
+    public string Name { get; set; } = null!;
 }
