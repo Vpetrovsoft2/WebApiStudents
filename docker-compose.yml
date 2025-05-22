@@ -11,12 +11,12 @@ services:
       - db
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Server=db;Database=StudentsDb;User=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;
+      - ConnectionStrings__DefaultConnection=Server=db;Database=StudentsDb;User Id=sa;Password=T2ZvtfXHPzw75yESGFBMQ9VLDau3KRqdsNUmj4rA;TrustServerCertificate=True;
 
   db:
     image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
-      SA_PASSWORD: "YourStrong!Passw0rd"
+      SA_PASSWORD: "T2ZvtfXHPzw75yESGFBMQ9VLDau3KRqdsNUmj4rA"
       ACCEPT_EULA: "Y"
     ports:
       - "1433:1433"
