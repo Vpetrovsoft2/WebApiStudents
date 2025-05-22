@@ -11,7 +11,7 @@ using WebApiStudents.Models;
 namespace WebApiStudents.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250313130022_InitialCreate")]
+    [Migration("20250522114019_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />

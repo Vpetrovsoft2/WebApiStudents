@@ -31,7 +31,6 @@ app.UseSwagger(options => options.OpenApiVersion = Microsoft.OpenApi.OpenApiSpec
 app.UseSwaggerUI(c => 
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "Student API v1");
-    c.RoutePrefix = "swagger/index.html";
 });
 
 app.UseAuthorization();
