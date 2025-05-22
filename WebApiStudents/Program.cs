@@ -17,7 +17,7 @@ builder.Services.AddSwaggerGen(c =>
     {
         Title = "Student API",
         Version = "v1",
-        Description = "API äëÿ óïðàâëåíèÿ ñòóäåíòàìè è ôàêóëüòåòàìè"
+        Description = "API Ð´Ð»Ñ ÑƒÐ¿Ñ€Ð°Ð²Ð»ÐµÐ½Ð¸Ñ ÑÑ‚ÑƒÐ´ÐµÐ½Ñ‚Ð°Ð¼Ð¸ Ð¸ Ñ„Ð°ÐºÑƒÐ»ÑŒÑ‚ÐµÑ‚Ð°Ð¼Ð¸"
     });
 
     c.EnableAnnotations();
@@ -36,4 +36,40 @@ app.UseSwaggerUI(c =>
 
 app.UseAuthorization();
 app.MapControllers();
+
+// Apply migrations at startup with retry logic
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<ILogger<Program>>();
+    var db = services.GetRequiredService<AppDbContext>();
+    
+    var retryCount = 0;
+    var maxRetries = 5;
+    
+    while (retryCount < maxRetries)
+    {
+        try
+        {
+            logger.LogInformation("Attempting to apply migrations...");
+            db.Database.Migrate();
+            logger.LogInformation("Migrations applied successfully");
+            break;
+        }
+        catch (Exception ex)
+        {
+            retryCount++;
+            logger.LogError(ex, "An error occurred while applying migrations. Retry {RetryCount} of {MaxRetries}", retryCount, maxRetries);
+            
+            if (retryCount == maxRetries)
+            {
+                logger.LogError("Failed to apply migrations after {MaxRetries} attempts", maxRetries);
+                throw;
+            }
+            
+            Thread.Sleep(5000); // Wait 5 seconds before retrying
+        }
+    }
+}
+
 app.Run();
