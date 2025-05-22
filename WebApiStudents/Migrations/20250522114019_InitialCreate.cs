@@ -20,7 +20,7 @@ namespace WebApiStudents.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Facultets", x => x.Id);
+                    table.PrimaryKey("PK_Facultes", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -38,9 +38,9 @@ namespace WebApiStudents.Migrations
                 {
                     table.PrimaryKey("PK_Students", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Students_Facultets_FacultetId",
+                        name: "FK_Students_Facultes_FacultetId",
                         column: x => x.FacultetId,
-                        principalTable: "Facultets",
+                        principalTable: "Facultes",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -58,7 +58,7 @@ namespace WebApiStudents.Migrations
                 name: "Students");
 
             migrationBuilder.DropTable(
-                name: "Facultets");
+                name: "Facultes");
         }
     }
 }
